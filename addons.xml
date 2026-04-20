@@ -1,5 +1,25 @@
 <addons>
 
+  <!-- plugin.program.leowizard | Quelle: plugin.program.leowizard -->
+  <addon id="plugin.program.leowizard"
+         name="LeoWizard"
+         version="2.0.0"
+         provider-name="LeoSystems">
+      <requires>
+          <import addon="xbmc.python" version="3.0.0"/>
+      </requires>
+      <extension point="xbmc.python.script" library="default.py" />
+      <extension point="xbmc.addon.metadata">
+          <summary>Wizard zur Installation einer vorgefertigten Kodi Installation</summary>
+          <description>Dieses Addon entpackt ZIP-Dateien direkt ins Kodi-Addons-Verzeichnis, aktiviert sie automatisch und setz das gewünschte Skin als Standard.</description>
+          <platform>all</platform>
+          <assets>
+  			<icon>icon.png</icon>
+  			<fanart>fanart.jpg</fanart>
+  		</assets>
+      </extension>
+  </addon>
+
   <!-- plugin.video.global_lastship_search | Quelle: plugin.video.global_lastship_search -->
   <addon id="plugin.video.global_lastship_search"
          name="Globale Lastship Suche"
@@ -185,6 +205,29 @@
   			<icon>icon.png</icon>
   		</assets> 
   	</extension>
+  </addon>
+
+  <!-- repository.slyguy | Quelle: leokodi_wizard -->
+  <addon id="repository.slyguy" name="SlyGuy Repository" provider-name="SlyGuy" version="0.0.9">
+    <extension point="xbmc.addon.repository" name="SlyGuy Repository">
+      <dir>
+        <info compressed="false">https://slyguy.uk/.repo/repository.slyguy/addons.xml</info>
+        <checksum>https://slyguy.uk/.repo/repository.slyguy/addons.xml.md5</checksum>
+        <datadir zip="true">https://slyguy.uk/.repo/repository.slyguy/</datadir>
+      </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+      <platform>all</platform>
+      <description lang="en">Addons by SlyGuy (slyguy.uk)</description>
+      <license></license>
+      <language></language>
+      <website></website>
+      <news></news>
+      <assets>
+        <icon>icon.png</icon>
+        <fanart>fanart.jpg</fanart>
+      </assets>
+    </extension>
   </addon>
 
   <!-- service.leosystems.bingie.lastshipplayer | Quelle: service.leosystems.bingie.lastshipplayer -->
