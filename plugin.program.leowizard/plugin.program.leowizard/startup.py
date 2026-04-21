@@ -111,6 +111,8 @@ def finalize_restore():
 
     # Skin + Sprache setzen
     set_setting("lookandfeel.skin", "skin.bingie")
+    xbmc.sleep(1000)
+    xbmc.executebuiltin("SendClick(yesnodialog,11)")
     set_setting("locale.language", "resource.language.de_de")
 
     xbmc.sleep(2000)
