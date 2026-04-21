@@ -272,7 +272,10 @@ def run_wizard():
     cleanup_downloaded_zip()
     cleanup_packages()
 
-    xbmcgui.Dialog().ok("Fertig", "Kodi wird neu gestartet")
+    xbmcgui.Dialog().ok(
+    "LeoWizard",
+    "Installation abgeschlossen.\n\nKodi wird jetzt neu gestartet.\n\nBitte NICHT sofort neu öffnen!\nWarte ca. 10 Sekunden."
+)
     xbmc.sleep(1000)
     xbmc.executebuiltin("RestartApp")
 

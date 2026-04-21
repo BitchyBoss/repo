@@ -122,12 +122,10 @@ def finalize_restore():
     ADDON.setSettingBool(SETTING_RESTORE_PENDING, False)
     log("Finalisierung abgeschlossen.")
 
-    xbmcgui.Dialog().notification(
-        "LeoWizard",
-        "Skin und Einstellungen wurden übernommen",
-        xbmcgui.NOTIFICATION_INFO,
-        4000
-    )
+    xbmcgui.Dialog().ok(
+    "LeoWizard",
+    "FERTIG ✅\n\nDein Kodi ist jetzt komplett eingerichtet.\n\nViel Spaß!"
+)
 
 
 if __name__ == "__main__":
