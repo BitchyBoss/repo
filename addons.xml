@@ -151,7 +151,7 @@
   <!-- repository.leosystems | Quelle: repository.leosystems -->
   <addon id="repository.leosystems"
          name="LeoSystems Repo"
-         version="2.0.0"
+         version="3.0.0"
          provider-name="LeoSystems">
   
     <extension point="xbmc.addon.repository">
