@@ -77,7 +77,9 @@ def finalize_restore():
 
     log("Finalisierung nach Neustart gestartet.")
 
-    xbmc.sleep(8000)
+    xbmc.sleep(20000)
+    xbmc.executebuiltin("UpdateLocalAddons")
+    xbmc.sleep(5000)
 
     # nur sources.xml behalten
     safe_copy(SRC_SOURCES, DEST_SOURCES, "sources.xml")
