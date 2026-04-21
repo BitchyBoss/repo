@@ -67,25 +67,28 @@ def set_setting(setting_name, value):
 
 
 def finalize_restore():
-    if ADDON.getSetting(SETTING_RESTORE_PENDING) != "true":
+    try:
+        if not ADDON.getSettingBool(SETTING_RESTORE_PENDING):
+            log("restore_pending ist nicht gesetzt, nichts zu tun.", xbmc.LOGDEBUG)
+            return
+    except Exception as e:
+        log(f"restore_pending konnte nicht gelesen werden: {e}", xbmc.LOGERROR)
         return
 
     log("Finalisierung nach Neustart gestartet.")
 
-    # Kodi erst komplett hochfahren lassen
     xbmc.sleep(8000)
 
     safe_copy(SRC_SOURCES, DEST_SOURCES, "sources.xml")
     safe_copy(SRC_GUISETTINGS, DEST_GUISETTINGS, "guisettings.xml")
 
-    # Wichtige Settings nochmal aktiv setzen
     set_setting("lookandfeel.skin", "skin.bingie")
     set_setting("locale.language", "resource.language.de_de")
 
     xbmc.sleep(2000)
     xbmc.executebuiltin("ReloadSkin()")
 
-    ADDON.setSetting(SETTING_RESTORE_PENDING, "false")
+    ADDON.setSettingBool(SETTING_RESTORE_PENDING, False)
     log("Finalisierung abgeschlossen, restore_pending entfernt.")
 
     xbmcgui.Dialog().notification(
@@ -94,7 +97,6 @@ def finalize_restore():
         xbmcgui.NOTIFICATION_INFO,
         4000
     )
-
 
 if __name__ == "__main__":
     finalize_restore()

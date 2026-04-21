@@ -251,7 +251,7 @@ def cleanup_packages():
 
 
 def mark_restore_pending():
-    ADDON.setSetting(SETTING_RESTORE_PENDING, "true")
+    ADDON.setSettingBool(SETTING_RESTORE_PENDING, True)
     log("restore_pending gesetzt.")
 
 
@@ -267,7 +267,7 @@ def run_wizard():
         return
 
     extract_build_zip(DOWNLOADED_ZIP)
-
+    mark_restore_pending()
     dialog.notification("LeoWizard", "Update Local Addons...", xbmcgui.NOTIFICATION_INFO, 3000)
     xbmc.executebuiltin("UpdateLocalAddons")
     xbmc.sleep(5000)
@@ -282,7 +282,7 @@ def run_wizard():
 
     # guisettings.xml und Skin NICHT hier live anwenden
     # Das passiert nach dem Reboot über startup.py
-    mark_restore_pending()
+ 
 
     cleanup_downloaded_zip()
     cleanup_packages()
