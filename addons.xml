@@ -3,21 +3,32 @@
   <!-- plugin.program.leowizard | Quelle: plugin.program.leowizard -->
   <addon id="plugin.program.leowizard"
          name="LeoWizard"
-         version="2.0.0"
+         version="3.0.0"
          provider-name="LeoSystems">
+  
       <requires>
           <import addon="xbmc.python" version="3.0.0"/>
       </requires>
+  
+      <!-- Dein Wizard (manuell gestartet) -->
       <extension point="xbmc.python.script" library="default.py" />
+  
+      <!-- NEU: Service läuft beim Kodi-Start -->
+      <extension point="xbmc.service" library="startup.py" start="startup" />
+  
       <extension point="xbmc.addon.metadata">
           <summary>Wizard zur Installation einer vorgefertigten Kodi Installation</summary>
-          <description>Dieses Addon entpackt ZIP-Dateien direkt ins Kodi-Addons-Verzeichnis, aktiviert sie automatisch und setz das gewünschte Skin als Standard.</description>
+          <description>
+              Dieses Addon entpackt ZIP-Dateien direkt ins Kodi-Addons-Verzeichnis,
+              aktiviert sie automatisch und setzt das gewünschte Skin als Standard.
+          </description>
           <platform>all</platform>
           <assets>
-  			<icon>icon.png</icon>
-  			<fanart>fanart.jpg</fanart>
-  		</assets>
+              <icon>icon.png</icon>
+              <fanart>fanart.jpg</fanart>
+          </assets>
       </extension>
+  
   </addon>
 
   <!-- plugin.video.global_lastship_search | Quelle: plugin.video.global_lastship_search -->
