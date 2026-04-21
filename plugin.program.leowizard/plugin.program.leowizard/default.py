@@ -230,6 +230,12 @@ def mark_restore_pending():
 
 def run_wizard():
     try:
+        xbmcgui.Dialog().ok(
+            "LeoWizard",
+            "Während der Installation bitte nichts drücken.\n\n"
+            "Zum Starten jetzt auf OK klicken und anschließend warten."
+        )
+
         show_busy()
 
         log("Installiere Build... Bitte nichts klicken")
