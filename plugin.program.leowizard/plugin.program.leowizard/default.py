@@ -22,7 +22,6 @@ SRC_SOURCES = os.path.join(ADDON_PATH, "resources", "sources.xml")
 
 KODI_HOME = xbmcvfs.translatePath("special://home")
 KODI_USERDATA = xbmcvfs.translatePath("special://home/userdata")
-DEST_GUISETTINGS = os.path.join(KODI_USERDATA, "guisettings.xml")
 DEST_SOURCES = os.path.join(KODI_USERDATA, "sources.xml")
 
 BLOCKED_ADDONS = [
@@ -105,11 +104,15 @@ def extract_build_zip(zip_path):
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for member in zip_ref.namelist():
+
             if member.startswith("addons/"):
-                target_path = os.path.join(KODI_HOME, member)
-            elif member.startswith("addondata/"):
-                rel_path = member.replace("addondata/", "", 1)
+                rel_path = member.replace("addons/", "", 1)
+                target_path = os.path.join(KODI_HOME, "addons", rel_path)
+
+            elif member.startswith("addon_data/") or member.startswith("addondata/"):
+                rel_path = member.replace("addon_data/", "", 1).replace("addondata/", "", 1)
                 target_path = os.path.join(KODI_USERDATA, "addon_data", rel_path)
+
             else:
                 continue
 
@@ -166,7 +169,7 @@ def remove_addon_files(addon_id):
 
     try:
         if os.path.exists(addon_dir):
-            shutil.rmtree(addon_dir, ignore_errors=False)
+            shutil.rmtree(addon_dir)
             log(f"Addon-Ordner gelöscht: {addon_dir}")
             removed_anything = True
     except Exception as e:
@@ -174,7 +177,7 @@ def remove_addon_files(addon_id):
 
     try:
         if os.path.exists(addon_data_dir):
-            shutil.rmtree(addon_data_dir, ignore_errors=False)
+            shutil.rmtree(addon_data_dir)
             log(f"Addon-Daten gelöscht: {addon_data_dir}")
             removed_anything = True
     except Exception as e:
@@ -188,21 +191,11 @@ def purge_blocked_addons():
 
     for addon_id in BLOCKED_ADDONS:
         if not addon_exists(addon_id):
-            log(f"Addon nicht vorhanden: {addon_id}")
             continue
 
-        xbmcgui.Dialog().notification("LeoWizard", f"Entferne {addon_id}...", xbmcgui.NOTIFICATION_INFO, 3000)
-
-        disabled = disable_addon(addon_id)
+        disable_addon(addon_id)
         xbmc.sleep(500)
-        removed = remove_addon_files(addon_id)
-
-        if removed:
-            log(f"Addon erfolgreich entfernt: {addon_id}")
-        elif disabled:
-            log(f"Addon konnte nicht gelöscht werden, bleibt aber deaktiviert: {addon_id}", xbmc.LOGWARNING)
-        else:
-            log(f"Addon konnte weder gelöscht noch deaktiviert werden: {addon_id}", xbmc.LOGERROR)
+        remove_addon_files(addon_id)
 
 
 def enable_all_addons():
@@ -225,8 +218,6 @@ def copy_sources_xml():
         if os.path.exists(SRC_SOURCES):
             shutil.copyfile(SRC_SOURCES, DEST_SOURCES)
             log("sources.xml kopiert.")
-        else:
-            log("sources.xml nicht gefunden.", xbmc.LOGWARNING)
     except Exception as e:
         log(f"Fehler beim Kopieren von sources.xml: {e}", xbmc.LOGERROR)
 
@@ -235,17 +226,15 @@ def cleanup_downloaded_zip():
     try:
         if os.path.exists(DOWNLOADED_ZIP):
             os.remove(DOWNLOADED_ZIP)
-            log(f"Temporäre ZIP gelöscht: {DOWNLOADED_ZIP}")
     except Exception as e:
-        log(f"Temporäre ZIP konnte nicht gelöscht werden: {e}", xbmc.LOGERROR)
+        log(f"ZIP löschen fehlgeschlagen: {e}", xbmc.LOGERROR)
 
 
 def cleanup_packages():
     packages_path = xbmcvfs.translatePath(os.path.join(KODI_HOME, "addons", "packages"))
     try:
         if os.path.exists(packages_path):
-            shutil.rmtree(packages_path, ignore_errors=True)
-            log("Ordner 'packages' wurde gelöscht.")
+            shutil.rmtree(packages_path)
     except Exception as e:
         log(f"Fehler beim Löschen von packages: {e}", xbmc.LOGERROR)
 
@@ -256,19 +245,19 @@ def mark_restore_pending():
 
 
 def run_wizard():
-    dialog = xbmcgui.Dialog()
-    dialog.notification("LeoWizard", "Installiere komplettes Kodi-Paket...", xbmcgui.NOTIFICATION_INFO, 3000)
+    xbmcgui.Dialog().notification("LeoWizard", "Installiere Build...", xbmcgui.NOTIFICATION_INFO, 3000)
 
     purge_blocked_addons()
     xbmc.sleep(1000)
 
     if not download_file(BUILD_ZIP_URL, DOWNLOADED_ZIP):
-        dialog.ok("Fehler", "Build konnte nicht heruntergeladen werden.")
+        xbmcgui.Dialog().ok("Fehler", "Download fehlgeschlagen.")
         return
 
     extract_build_zip(DOWNLOADED_ZIP)
+
     mark_restore_pending()
-    dialog.notification("LeoWizard", "Update Local Addons...", xbmcgui.NOTIFICATION_INFO, 3000)
+
     xbmc.executebuiltin("UpdateLocalAddons")
     xbmc.sleep(5000)
 
@@ -280,14 +269,10 @@ def run_wizard():
 
     copy_sources_xml()
 
-    # guisettings.xml und Skin NICHT hier live anwenden
-    # Das passiert nach dem Reboot über startup.py
- 
-
     cleanup_downloaded_zip()
     cleanup_packages()
 
-    dialog.ok("Wizard abgeschlossen", "Kodi wird jetzt neu gestartet, um Skin und Einstellungen final zu übernehmen.")
+    xbmcgui.Dialog().ok("Fertig", "Kodi wird neu gestartet")
     xbmc.sleep(1000)
     xbmc.executebuiltin("RestartApp")
 

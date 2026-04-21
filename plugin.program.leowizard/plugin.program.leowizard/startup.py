@@ -10,11 +10,9 @@ ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo("path"))
 
-SRC_GUISETTINGS = os.path.join(ADDON_PATH, "resources", "guisettings.xml")
 SRC_SOURCES = os.path.join(ADDON_PATH, "resources", "sources.xml")
 
 KODI_USERDATA = xbmcvfs.translatePath("special://home/userdata")
-DEST_GUISETTINGS = os.path.join(KODI_USERDATA, "guisettings.xml")
 DEST_SOURCES = os.path.join(KODI_USERDATA, "sources.xml")
 
 SETTING_RESTORE_PENDING = "restore_pending"
@@ -44,7 +42,8 @@ def safe_copy(src, dst, label):
             shutil.copyfile(src, dst)
             log(f"{label} kopiert: {src} -> {dst}")
             return True
-        log(f"{label} nicht gefunden: {src}", xbmc.LOGWARNING)
+        else:
+            log(f"{label} nicht gefunden: {src}", xbmc.LOGWARNING)
     except Exception as e:
         log(f"Fehler beim Kopieren von {label}: {e}", xbmc.LOGERROR)
     return False
@@ -66,6 +65,19 @@ def set_setting(setting_name, value):
         return False
 
 
+def wait_for_skin():
+    log("Warte auf Skin-Verfügbarkeit...")
+
+    for i in range(30):  # max ~30 Sekunden warten
+        if xbmc.getCondVisibility("System.HasAddon(skin.bingie)"):
+            log("Skin ist verfügbar.")
+            return True
+        xbmc.sleep(1000)
+
+    log("Skin wurde nicht rechtzeitig geladen!", xbmc.LOGERROR)
+    return False
+
+
 def finalize_restore():
     try:
         if not ADDON.getSettingBool(SETTING_RESTORE_PENDING):
@@ -77,23 +89,36 @@ def finalize_restore():
 
     log("Finalisierung nach Neustart gestartet.")
 
-    xbmc.sleep(20000)
+    # Kodi erstmal stabil hochfahren lassen
+    xbmc.sleep(10000)
+
+    # Addons neu einlesen
     xbmc.executebuiltin("UpdateLocalAddons")
     xbmc.sleep(5000)
 
-    # nur sources.xml behalten
+    # sources.xml wiederherstellen
     safe_copy(SRC_SOURCES, DEST_SOURCES, "sources.xml")
 
-    # guisettings.xml komplett entfernt
+    # Warten bis Skin wirklich verfügbar ist
+    if not wait_for_skin():
+        xbmcgui.Dialog().notification(
+            "LeoWizard",
+            "Skin konnte nicht geladen werden!",
+            xbmcgui.NOTIFICATION_ERROR,
+            4000
+        )
+        return
 
+    # Skin + Sprache setzen
     set_setting("lookandfeel.skin", "skin.bingie")
     set_setting("locale.language", "resource.language.de_de")
 
     xbmc.sleep(2000)
     xbmc.executebuiltin("ReloadSkin()")
 
+    # Flag zurücksetzen
     ADDON.setSettingBool(SETTING_RESTORE_PENDING, False)
-    log("Finalisierung abgeschlossen, restore_pending entfernt.")
+    log("Finalisierung abgeschlossen.")
 
     xbmcgui.Dialog().notification(
         "LeoWizard",
@@ -101,6 +126,7 @@ def finalize_restore():
         xbmcgui.NOTIFICATION_INFO,
         4000
     )
+
 
 if __name__ == "__main__":
     finalize_restore()
