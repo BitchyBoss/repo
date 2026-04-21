@@ -88,6 +88,12 @@ def finalize_restore():
         return
 
     log("Finalisierung nach Neustart gestartet.")
+    xbmcgui.Dialog().notification(
+    "LeoWizard",
+    "Bitte nichts klicken...\nSetup wird abgeschlossen",
+    xbmcgui.NOTIFICATION_INFO,
+    10000
+)
 
     # Kodi erstmal stabil hochfahren lassen
     xbmc.sleep(10000)
