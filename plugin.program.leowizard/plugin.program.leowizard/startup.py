@@ -68,7 +68,7 @@ def set_setting(setting_name, value):
 def wait_for_skin():
     log("Warte auf Skin-Verfügbarkeit...")
 
-    for i in range(30):
+    for _ in range(30):  # max ~30 Sekunden
         if xbmc.getCondVisibility("System.HasAddon(skin.bingie)"):
             log("Skin ist verfügbar.")
             return True
@@ -81,40 +81,29 @@ def wait_for_skin():
 def finalize_restore():
     try:
         if not ADDON.getSettingBool(SETTING_RESTORE_PENDING):
-            log("restore_pending ist nicht gesetzt, nichts zu tun.", xbmc.LOGDEBUG)
             return
     except Exception as e:
-        log(f"restore_pending konnte nicht gelesen werden: {e}", xbmc.LOGERROR)
+        log(f"restore_pending Fehler: {e}", xbmc.LOGERROR)
         return
 
     log("Finalisierung nach Neustart gestartet.")
 
-    # 🔒 User blockieren + Hinweis anzeigen
-    xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
-    xbmc.sleep(1000)
+    progress = xbmcgui.DialogProgress()
+    progress.create("LeoWizard", "Setup wird abgeschlossen...")
 
-    xbmcgui.Dialog().notification(
-        "LeoWizard",
-        "Setup wird abgeschlossen...\nBitte warten",
-        xbmcgui.NOTIFICATION_INFO,
-        8000
-    )
-
-    xbmc.sleep(9000)
-    xbmc.executebuiltin('Dialog.Close(busydialognocancel)')
-
-    # Kodi stabil hochfahren lassen
-    xbmc.sleep(10000)
-
-    # Addons neu einlesen
+    # Schritt 1: Addons laden
+    progress.update(10, "Initialisiere...")
     xbmc.executebuiltin("UpdateLocalAddons")
     xbmc.sleep(5000)
 
-    # sources.xml wiederherstellen
+    # Schritt 2: sources.xml wiederherstellen
+    progress.update(30, "Kopiere Einstellungen...")
     safe_copy(SRC_SOURCES, DEST_SOURCES, "sources.xml")
 
-    # Warten bis Skin verfügbar
+    # Schritt 3: warten bis Skin verfügbar
+    progress.update(50, "Warte auf Skin...")
     if not wait_for_skin():
+        progress.close()
         xbmcgui.Dialog().notification(
             "LeoWizard",
             "Skin konnte nicht geladen werden!",
@@ -123,15 +112,23 @@ def finalize_restore():
         )
         return
 
-    # Skin + Sprache setzen
+    # Schritt 4: Skin setzen
+    progress.update(70, "Setze Skin...")
     set_setting("lookandfeel.skin", "skin.bingie")
-    xbmc.sleep(1000)
+    xbmc.sleep(1500)
     xbmc.executebuiltin("SendClick(yesnodialog,11)")
 
+    # Schritt 5: Sprache setzen
+    progress.update(85, "Setze Sprache...")
     set_setting("locale.language", "resource.language.de_de")
 
     xbmc.sleep(2000)
     xbmc.executebuiltin("ReloadSkin()")
+
+    # Schritt 6: fertig
+    progress.update(100, "Fertig!")
+    xbmc.sleep(1000)
+    progress.close()
 
     # Flag zurücksetzen
     ADDON.setSettingBool(SETTING_RESTORE_PENDING, False)

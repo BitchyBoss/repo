@@ -17,7 +17,6 @@ BUILD_ZIP_URL = "https://github.com/leobitchy/leosystems-repo/releases/download/
 TEMP_DIR = xbmcvfs.translatePath("special://temp/plugin.program.leowizard")
 DOWNLOADED_ZIP = os.path.join(TEMP_DIR, "addons.zip")
 
-SRC_GUISETTINGS = os.path.join(ADDON_PATH, "resources", "guisettings.xml")
 SRC_SOURCES = os.path.join(ADDON_PATH, "resources", "sources.xml")
 
 KODI_HOME = xbmcvfs.translatePath("special://home")
@@ -37,16 +36,10 @@ def log(msg, level=xbmc.LOGINFO):
 
 
 def jsonrpc(method, params=None):
-    payload = {
-        "jsonrpc": "2.0",
-        "method": method,
-        "id": 1
-    }
+    payload = {"jsonrpc": "2.0", "method": method, "id": 1}
     if params is not None:
         payload["params"] = params
-
-    result = xbmc.executeJSONRPC(json.dumps(payload))
-    return json.loads(result)
+    return json.loads(xbmc.executeJSONRPC(json.dumps(payload)))
 
 
 def ensure_dir(path):
@@ -54,6 +47,7 @@ def ensure_dir(path):
         os.makedirs(path, exist_ok=True)
 
 
+# 🔽 DOWNLOAD MIT EIGENEM PROGRESS (bleibt wie gehabt)
 def download_file(url, dest_path):
     ensure_dir(os.path.dirname(dest_path))
 
@@ -62,11 +56,10 @@ def download_file(url, dest_path):
 
     try:
         with urllib.request.urlopen(url) as response:
-            total = response.headers.get("Content-Length")
-            total = int(total) if total else 0
+            total = int(response.headers.get("Content-Length", 0))
+            downloaded = 0
 
             with open(dest_path, "wb") as out_file:
-                downloaded = 0
                 while True:
                     chunk = response.read(1024 * 256)
                     if not chunk:
@@ -77,205 +70,145 @@ def download_file(url, dest_path):
 
                     if total > 0:
                         percent = int(downloaded * 100 / total)
-                        mb_done = downloaded / (1024 * 1024)
-                        mb_total = total / (1024 * 1024)
-                        dialog.update(percent, f"Lade Build herunter...\n{mb_done:.1f} / {mb_total:.1f} MB")
+                        dialog.update(percent, f"{percent}% heruntergeladen")
                     else:
-                        dialog.update(0, f"Lade Build herunter...\n{downloaded // 1024} KB")
+                        dialog.update(0, f"{downloaded // 1024} KB")
 
                     if dialog.iscanceled():
-                        raise Exception("Download abgebrochen.")
+                        raise Exception("Abgebrochen")
 
         dialog.close()
-        log(f"Build ZIP heruntergeladen: {dest_path}")
         return True
 
     except Exception as e:
-        try:
-            dialog.close()
-        except Exception:
-            pass
-        log(f"Fehler beim Download: {e}", xbmc.LOGERROR)
+        dialog.close()
+        log(f"Download Fehler: {e}", xbmc.LOGERROR)
         return False
 
 
+# 🔽 EXTRACT (ohne extra progress → wir steuern außen)
 def extract_build_zip(zip_path):
-    xbmcgui.Dialog().notification("LeoWizard", "Entpacke Build...", xbmcgui.NOTIFICATION_INFO, 3000)
-
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for member in zip_ref.namelist():
 
             if member.startswith("addons/"):
-                rel_path = member.replace("addons/", "", 1)
-                target_path = os.path.join(KODI_HOME, "addons", rel_path)
+                rel = member.replace("addons/", "", 1)
+                target = os.path.join(KODI_HOME, "addons", rel)
 
             elif member.startswith("addon_data/") or member.startswith("addondata/"):
-                rel_path = member.replace("addon_data/", "", 1).replace("addondata/", "", 1)
-                target_path = os.path.join(KODI_USERDATA, "addon_data", rel_path)
+                rel = member.replace("addon_data/", "", 1).replace("addondata/", "", 1)
+                target = os.path.join(KODI_USERDATA, "addon_data", rel)
 
             else:
                 continue
 
             if member.endswith("/"):
-                os.makedirs(target_path, exist_ok=True)
+                os.makedirs(target, exist_ok=True)
             else:
-                os.makedirs(os.path.dirname(target_path), exist_ok=True)
-                with zip_ref.open(member) as source, open(target_path, "wb") as target:
-                    shutil.copyfileobj(source, target)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with zip_ref.open(member) as s, open(target, "wb") as t:
+                    shutil.copyfileobj(s, t)
 
 
 def addon_exists(addon_id):
-    try:
-        result = jsonrpc("Addons.GetAddons", {
-            "properties": ["name", "enabled"]
-        })
-        for addon in result.get("result", {}).get("addons", []):
-            if addon.get("addonid") == addon_id:
-                return True
-    except Exception as e:
-        log(f"Fehler bei Addon-Prüfung für {addon_id}: {e}", xbmc.LOGERROR)
-    return False
+    result = jsonrpc("Addons.GetAddons", {"properties": ["enabled"]})
+    return any(a.get("addonid") == addon_id for a in result.get("result", {}).get("addons", []))
 
 
 def disable_addon(addon_id):
-    try:
-        result = jsonrpc("Addons.SetAddonEnabled", {
-            "addonid": addon_id,
-            "enabled": False
-        })
-        if "error" in result:
-            log(f"Addon konnte nicht deaktiviert werden: {addon_id} - {result['error']}", xbmc.LOGERROR)
-            return False
-        log(f"Addon deaktiviert: {addon_id}")
-        return True
-    except Exception as e:
-        log(f"Fehler beim Deaktivieren von {addon_id}: {e}", xbmc.LOGERROR)
-        return False
-
-
-def disable_blocked_addons_if_present():
-    for addon_id in BLOCKED_ADDONS:
-        if addon_exists(addon_id):
-            disable_addon(addon_id)
-        else:
-            log(f"Blockiertes Addon nicht vorhanden: {addon_id}")
+    jsonrpc("Addons.SetAddonEnabled", {"addonid": addon_id, "enabled": False})
 
 
 def remove_addon_files(addon_id):
-    removed_anything = False
-
-    addon_dir = xbmcvfs.translatePath(os.path.join("special://home", "addons", addon_id))
-    addon_data_dir = xbmcvfs.translatePath(os.path.join("special://profile", "addon_data", addon_id))
-
-    try:
-        if os.path.exists(addon_dir):
-            shutil.rmtree(addon_dir)
-            log(f"Addon-Ordner gelöscht: {addon_dir}")
-            removed_anything = True
-    except Exception as e:
-        log(f"Fehler beim Löschen von {addon_dir}: {e}", xbmc.LOGERROR)
-
-    try:
-        if os.path.exists(addon_data_dir):
-            shutil.rmtree(addon_data_dir)
-            log(f"Addon-Daten gelöscht: {addon_data_dir}")
-            removed_anything = True
-    except Exception as e:
-        log(f"Fehler beim Löschen von {addon_data_dir}: {e}", xbmc.LOGERROR)
-
-    return removed_anything
+    shutil.rmtree(os.path.join(KODI_HOME, "addons", addon_id), ignore_errors=True)
+    shutil.rmtree(os.path.join(KODI_USERDATA, "addon_data", addon_id), ignore_errors=True)
 
 
 def purge_blocked_addons():
-    xbmcgui.Dialog().notification("LeoWizard", "Prüfe unerwünschte Addons...", xbmcgui.NOTIFICATION_INFO, 3000)
-
     for addon_id in BLOCKED_ADDONS:
-        if not addon_exists(addon_id):
-            continue
-
-        disable_addon(addon_id)
-        xbmc.sleep(500)
-        remove_addon_files(addon_id)
+        if addon_exists(addon_id):
+            disable_addon(addon_id)
+            xbmc.sleep(300)
+            remove_addon_files(addon_id)
 
 
 def enable_all_addons():
-    xbmcgui.Dialog().notification("LeoWizard", "Aktiviere alle Addons...", xbmcgui.NOTIFICATION_INFO, 3000)
-
     result = jsonrpc("Addons.GetAddons", {"enabled": False})
     for addon in result.get("result", {}).get("addons", []):
-        addonid = addon.get("addonid")
-        if addonid:
-            jsonrpc("Addons.SetAddonEnabled", {
-                "addonid": addonid,
-                "enabled": True
-            })
-
-    log("Alle Addons aktiviert.")
+        jsonrpc("Addons.SetAddonEnabled", {"addonid": addon["addonid"], "enabled": True})
 
 
 def copy_sources_xml():
-    try:
-        if os.path.exists(SRC_SOURCES):
-            shutil.copyfile(SRC_SOURCES, DEST_SOURCES)
-            log("sources.xml kopiert.")
-    except Exception as e:
-        log(f"Fehler beim Kopieren von sources.xml: {e}", xbmc.LOGERROR)
+    if os.path.exists(SRC_SOURCES):
+        shutil.copyfile(SRC_SOURCES, DEST_SOURCES)
 
 
-def cleanup_downloaded_zip():
+def cleanup():
     try:
         if os.path.exists(DOWNLOADED_ZIP):
             os.remove(DOWNLOADED_ZIP)
-    except Exception as e:
-        log(f"ZIP löschen fehlgeschlagen: {e}", xbmc.LOGERROR)
-
-
-def cleanup_packages():
-    packages_path = xbmcvfs.translatePath(os.path.join(KODI_HOME, "addons", "packages"))
-    try:
-        if os.path.exists(packages_path):
-            shutil.rmtree(packages_path)
-    except Exception as e:
-        log(f"Fehler beim Löschen von packages: {e}", xbmc.LOGERROR)
+        shutil.rmtree(os.path.join(KODI_HOME, "addons", "packages"), ignore_errors=True)
+    except:
+        pass
 
 
 def mark_restore_pending():
     ADDON.setSettingBool(SETTING_RESTORE_PENDING, True)
-    log("restore_pending gesetzt.")
 
 
+# 🚀 HAUPTABLAUF MIT PROGRESS
 def run_wizard():
-    xbmcgui.Dialog().notification("LeoWizard", "Installiere Build...", xbmcgui.NOTIFICATION_INFO, 3000)
+    progress = xbmcgui.DialogProgress()
+    progress.create("LeoWizard", "Installation startet...")
 
+    # 1
+    progress.update(5, "Bereinige Addons...")
     purge_blocked_addons()
-    xbmc.sleep(1000)
 
+    # 2
+    progress.update(15, "Lade Build...")
     if not download_file(BUILD_ZIP_URL, DOWNLOADED_ZIP):
+        progress.close()
         xbmcgui.Dialog().ok("Fehler", "Download fehlgeschlagen.")
         return
 
+    # 3
+    progress.update(40, "Entpacke Build...")
     extract_build_zip(DOWNLOADED_ZIP)
 
+    # 4
+    progress.update(55, "Initialisiere Addons...")
     mark_restore_pending()
-
     xbmc.executebuiltin("UpdateLocalAddons")
     xbmc.sleep(5000)
 
+    # 5
+    progress.update(70, "Aktiviere Addons...")
     enable_all_addons()
     xbmc.sleep(2000)
 
+    # 6
+    progress.update(80, "Entferne unerwünschte Addons...")
     disable_blocked_addons_if_present()
     xbmc.sleep(1000)
 
+    # 7
+    progress.update(90, "Übernehme Einstellungen...")
     copy_sources_xml()
 
-    cleanup_downloaded_zip()
-    cleanup_packages()
+    # 8
+    progress.update(95, "Cleanup...")
+    cleanup()
+
+    progress.update(100, "Fertig!")
+    xbmc.sleep(1000)
+    progress.close()
 
     xbmcgui.Dialog().ok(
-    "LeoWizard",
-    "Installation abgeschlossen.\nKodi wird nach klick auf OK neu gestartet.\nBitte die App NICHT sofort starten!\nWarte ca. 10 Sekunden."
-)
+        "LeoWizard",
+        "Installation abgeschlossen.\n\nKodi wird jetzt neu gestartet.\nBitte 10 Sekunden warten bevor du Kodi wieder öffnest!"
+    )
+
     xbmc.sleep(1000)
     xbmc.executebuiltin("RestartApp")
 
