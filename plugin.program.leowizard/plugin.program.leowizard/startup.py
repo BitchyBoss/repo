@@ -79,8 +79,10 @@ def finalize_restore():
 
     xbmc.sleep(8000)
 
+    # nur sources.xml behalten
     safe_copy(SRC_SOURCES, DEST_SOURCES, "sources.xml")
-    safe_copy(SRC_GUISETTINGS, DEST_GUISETTINGS, "guisettings.xml")
+
+    # guisettings.xml komplett entfernt
 
     set_setting("lookandfeel.skin", "skin.bingie")
     set_setting("locale.language", "resource.language.de_de")
