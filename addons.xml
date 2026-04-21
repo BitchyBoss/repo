@@ -156,9 +156,9 @@
   
     <extension point="xbmc.addon.repository">
       <dir>
-        <info compressed="false">https://raw.githubusercontent.com/leobitchy/leosystems-repo/main/addons.xml</info>
-  <checksum>https://raw.githubusercontent.com/leobitchy/leosystems-repo/main/addons.xml.md5</checksum>
-  <datadir zip="true">https://raw.githubusercontent.com/leobitchy/leosystems-repo/main/</datadir>
+        <info compressed="false">https://raw.githubusercontent.com/leobitchy/repo/main/addons.xml</info>
+  <checksum>https://raw.githubusercontent.com/leobitchy/repo/main/addons.xml.md5</checksum>
+  <datadir zip="true">https://raw.githubusercontent.com/leobitchy/repo/main/</datadir>
       </dir>
     </extension>
   
