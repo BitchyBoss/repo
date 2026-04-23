@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.bb_global_search"
        name="BitchyBoss Globale Kodi Lastship Suche"
-       version="1.0.2"
+       version="1.0.3"
        provider-name="BitchyBoss">
 
   <requires>
@@ -27,8 +27,7 @@
   <extension point="xbmc.addon.metadata">
     <platform>all</platform>
     <summary lang="de_DE">Globale Lastship Reborn Suche für Filme und Serien</summary>
-    <description lang="de_DE">
-      Fügt zwei globale Kontextmenüeinträge hinzu, um den ausgewählten Titel in Lastship Reborn zu suchen:
+    <description lang="de_DE">Fügt zwei globale Kontextmenüeinträge hinzu, um den ausgewählten Titel in Lastship Reborn zu suchen:
       „Film suchen“ oder „Serie suchen“.
     </description>
     <language>de</language>
